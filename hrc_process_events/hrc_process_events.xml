@@ -1,0 +1,1055 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE cxchelptopics SYSTEM "CXCHelp.dtd">
+<cxchelptopics>
+<ENTRY context="tools" key="hrc_process_events" refkeywords="hrc event events coordinate coordinates position pha pi status degap gain badpix alignment tap mcp" seealsogroups="hrctools">
+<SYNOPSIS>
+
+      Correct HRC event positions, times, PHA, etc.
+   
+</SYNOPSIS>
+<SYNTAX>
+<LINE>
+
+         hrc_process_events infile outfile badpixfile acaofffile
+         alignmentfile 
+         [obsfile] [geompar] [do_ratio] [do_amp_sf_cor] [gainfile] 
+         [ADCfile] [degapfile] [hypfile] [ampsfcorfile] [tapfile] 
+         [ampsatfile] [evtflatfile] [badfile] [logfile] [instrume]
+         [eventdef] [badeventdef] [grid_ratio] [pha_ratio] 
+         [wire_charge] 
+         [cfu1] [cfu2] [cfv1] [cfv2]
+         [time_offset] [amp_gain] 
+         [rand_seed] [rand_pix_size]
+         [tstart] [tstop] 
+         [start] [stop] 
+         [stdlev1] [badlev1] [hsilev1] [simlev1] [fltlev1]
+         [clobber] [verbose]
+      
+</LINE>
+
+</SYNTAX>
+
+<DESC>
+<PARA>
+
+         `hrc_process_events' computes detector  coordinates for input
+         HRC events. The detector position is determined by applying
+         fine position corrections and degapping corrections to the
+         coarse position specified in the input data (see the "SEE
+         ALSO" section below for the actual algorithm). Raw
+         coordinates, chip coordinates, and sum amplitude of each
+         event are generated as by-products of the detector coordinate
+         calculation and may be output if desired. The tool also
+         applies aspect offset and sim alignment corrections as well
+         as flags status bits of bad pixels when supplied with the
+         appropriate files. 
+      
+</PARA>
+<PARA>
+
+         Stacks:  The user may specify a single file or a list of files as input to this
+         routine. Hrc_process_events will attempt to process all input files 
+         provided to it. If an error is detected in an input file (ie. a data  
+         dependency is not met), that file will be discarded and a message  
+         will be generated to stderr. When the debug level is greater than two, 
+         counts of the number of bad files and events will be maintained and 
+         written to the debug log file.  
+      
+</PARA>
+<PARA>
+
+         Dependencies: If all of the required dependencies are not met, the input file will
+         be discarded and a message will be output to stderr. The routine will
+         iterate to the next input file if a stack is provided as input.  
+      
+</PARA>
+<LIST>
+<CAPTION>
+
+            General
+         
+</CAPTION>
+<ITEM>
+
+            It is the user's responsibility to ensure that all of the
+             parameters  
+             are correctly set. The function will not perform validity
+            checks on the 
+            input parameter data other than verifying the existence of the axes in
+            the eventdef list. Special care should be taken to ensure that columns 
+            are specified in the eventdef list if they are desired as output. If 
+            a column that is not computed is specified in the eventdef list, the 
+            data fields for that column in the output file will contain zero. For 
+            instance, if the stop parameter is set to 'none' and the eventdef 
+            contains sky coords, they will have a value of 0.
+         
+</ITEM>
+<ITEM>
+
+            It does not matter what fields the input event file contains provided that
+            all data dependencies for the selected options are met.
+         
+</ITEM>
+<ITEM>
+
+            In order to perform coordinate tansformations, the following fields must
+            exist in the input data: coarse u position, coarse v position, and the six
+            amp values (three for the u axis, and three for the v axis). If the
+            start parameter is set to chip, then chipx, chipy is necessary in lieu of
+            the above mentioned columns.
+         
+</ITEM>
+<ITEM>
+
+            The routine will generate as output, an event file containing columns that 
+            are listed in the eventdef parameter. One row will be written for each
+            input row (event) successfully processed. Events that are unsuccessfully
+            processed will be placed in the bad event file and a warning message will 
+            be output. If the  debug level is set to three or higher a count of the 
+            number of events that have been discarded will be written to the debug 
+            logfile.  
+         
+</ITEM>
+
+</LIST>
+<PARA>
+
+         Pulse Invarience/Gain Correction:
+         Gain correction will only be applied when an input gain file is provided. 
+         The results of this calculation will only be propogated to the output file
+         if the eventdef parameter contains the string "s:pi" as an entry.  
+      
+</PARA>
+
+<PARA>
+	Tap-ringing Correction: This correction compensates for
+	distortions in event positions due to ringing in on-board
+	electronics. It will be applied if the parameter
+	"do_amp_sf_cor" is set to "yes" and calibration files
+	containing coefficients for the amp_sf and tapringing
+	corrections are applied. These are specified by parameters
+	"ampsfcorfile" and "tapfile", and default to files in
+	CALDB. In addition, HRC operating parameters RANGELEV and
+	WIDTHRES are required. These are provided in the observation
+	parameter file in standard processing. Alternatively, users
+	may add them as keywords in the event list header (see Example
+	3, below).
+</PARA>
+
+<PARA>
+	Correct values of RANGELEV are given in the following table.
+</PARA>
+
+<TABLE>
+<ROW>
+  <DATA>Date</DATA>
+  <DATA>HRC-I</DATA>
+  <DATA>HRC-S</DATA>
+</ROW>
+
+<ROW>
+  <DATA>Before 12/6/1999</DATA>
+  <DATA>90</DATA>
+  <DATA>90</DATA>
+</ROW>
+
+<ROW>
+  <DATA>After 12/6/1999</DATA>
+  <DATA>115</DATA>
+  <DATA>125</DATA>
+</ROW>
+</TABLE>
+
+<PARA>
+	For WIDTHRES, the value is 3 prior to 10/5/2000 and 2 after
+	that date, for both HRC-I and HRC-S.
+</PARA>
+
+
+<PARA>
+
+            For more information on HRC data products please refer to
+	    the 
+<HREF link="http://cxc.harvard.edu/ciao/data_products_guide/">Data 
+Products Guide</HREF>.
+</PARA>
+
+</DESC>
+<QEXAMPLELIST>
+<QEXAMPLE>
+<SYNTAX>
+<LINE>
+
+            hrc_process_events xh101950595_evt0.fits xh101950595_evt1.fits degapfile=hrci_degap.fits clobber=no 
+         
+</LINE>
+
+</SYNTAX>
+<DESC>
+<PARA>
+
+            Runs `hrc_process_events' to generate coordinate information using a degap file
+            and no aspect or alignment corrections. Do not identify bad/hot pixels and
+            do not overwrite the output file if a file named xh101950595_evt1.fits
+            already exists. 
+         
+</PARA>
+
+</DESC>
+
+</QEXAMPLE>
+<QEXAMPLE>
+<SYNTAX>
+<LINE>
+
+            hrc_process_events xh103254768_evt0.fits xh103254768_evt1.fits hrci_badpix.fits NONE NONE gainfile=hrci_gain.fits logfile=debug.txt verbose=3 eventdef="{d:time,s:chipy,d:sky,s:pi}"
+         
+</LINE>
+
+</SYNTAX>
+<DESC>
+<PARA>
+
+            Runs `hrc_process_events' to generate an output file containing time, chip, sky, and pi columns. Create a log file named debug.txt with moderate
+            detail. Use the hrci_badpix.fits badpixel file and the hrci_gain.fits
+            gain correction file. Do not apply aspect or alignment corrections.   
+         
+</PARA>
+
+</DESC>
+
+</QEXAMPLE>
+
+<QEXAMPLE>
+<SYNTAX>
+<LINE>
+      dmhedit hrcf00998_000N002_evt1.fits filelist=none operation=add key=RANGELEV value=125  
+</LINE>
+
+<LINE>
+      dmhedit hrcf00998_000N002_evt1.fits filelist=none operation=add key=WIDTHRES value=2  
+</LINE>
+
+<LINE>
+
+      hrc_process_events hrcf00998_000N002_evt1.fits new_evt1.fits hrcf00998_000N002_bpix1.fits.gz hrcf00998_000N002_aoff1.fits.gz do_amp_sf_cor=yes
+        
+</LINE>
+
+</SYNTAX>
+<DESC>
+<PARA>
+
+	Runs `hrc_process_events' to generate a new level 1 event list
+	with amp_sf and tap-ringing corrections applied. Since this is
+	an HRC-S observation taken on 12/20/2000, RANGELEV=125 and
+	WIDTHRES=2. These values are added to the input header using
+	`dmhedit' prior to running hrc_process_events.
+         
+</PARA>
+
+</DESC>
+
+</QEXAMPLE>
+</QEXAMPLELIST>
+
+<PARAMLIST>
+<PARAM filetype="input" name="infile" reqd="yes" stacks="yes" type="file">
+<SYNOPSIS>
+
+         Stack of input event files [FITS format]
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            The input can be a single or a stack of event file(s) from
+	    any level (L0, L1, L1.5, L2).
+            If the input is a stack, the files listed should be in an
+            ascending time order. For one or multiple input files, there 
+            should be only one single output file.
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM filetype="output" name="outfile" reqd="yes" type="file">
+<SYNOPSIS>
+
+         Output FITS event file
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            There's only one single output file from this tool.
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="NONE" filetype="input" name="badpixfile" reqd="yes" stacks="yes" type="file">
+<SYNOPSIS>
+
+         A single or a stack of existing bad pixel files
+
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            This is an auto parameter which is used to provide the tool with a
+            list of hot/bad pixels. Events which fall on a hot/bad pixel will have a status bit set to indicate such.
+
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="NONE" filetype="input" name="acaofffile" reqd="yes" type="file">
+<SYNOPSIS>
+
+         Existing aspect offsets.  FITS file or NONE
+
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            Aspect offset file used to compensate for spacecraft
+            movements during an observation. If more than one input
+            file is used, then the files should be in chronological
+            order.  If the files are not in order, the tool will exit
+            with an error. 
+
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM filetype="input" name="alignmentfile" reqd="yes" type="file">
+<SYNOPSIS>
+
+         Existing alignment.  FITS file or NONE
+
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            This parameter is used to provide the tool with values
+            used to adjust the mirror position via SIM alignment
+            (flight) or dither (XRCF) values.  If more than one input
+            file is used, then the files should be in chronological
+            order.  If the files are not in order, the tool will exit
+            with an error. 
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="NONE" filetype="input" name="obsfile" type="file">
+<SYNOPSIS>
+
+         Existing observation parameter *.PAR file (uncompressed) or NONE.
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            This value specifies the name of the observation parameter file to
+            seed the output event file header with. If the value is not "NONE",
+            the keywords from the specified file are copied to the output 
+            file's header. 
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="geom" name="geompar" type="string">
+<SYNOPSIS>
+
+        The name of the Pixlib Geometry parameter file.
+
+</SYNOPSIS>
+
+</PARAM>
+<PARAM def="yes" name="do_ratio" type="boolean">
+<SYNOPSIS>
+
+         yes/no
+
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            Option to either execute or omit the performance of ratio validity
+            checks (sum of amps to pha ratio and grid charge ratio) on the
+            processed events.
+
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="yes" name="do_amp_sf_cor" type="boolean">
+<SYNOPSIS>
+
+         yes/no
+
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            Option to perform amp_sf correction or not.  By default
+this correction is turned on.  In order to use it, a keyword
+RANGELEV needs to be present in the evt1 event header. If it's not,
+the program reports an error.
+
+</PARA>
+</DESC>
+
+</PARAM>
+<PARAM def="CALDB" filetype="ARD" name="gainfile" type="file">
+<SYNOPSIS>
+
+         CALDB, NONE, or file name.
+
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            Filename of the gain image to use in computing the energy of
+            an event from the PHA of an event.
+            Users can specify "CALDB" to automatically look up the file
+            appropriate for the observation date; the header keyword "GAINFILE"
+            will contain the name of the file actually used.
+
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="NONE" filetype="input" name="ADCfile" type="file">
+<SYNOPSIS>
+
+         Existing ADC correction.  FITS file or NONE
+
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            This file contains the gain correction factors to apply to the amp
+            values. If a file is provided, the correction is performed.
+
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="CALDB" filetype="ARD" name="degapfile" type="file">
+<SYNOPSIS>
+
+         CALDB, COEFF, NONE, or file name
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            This parameter specifies how to apply degapping corrections. 
+            If set to NONE then values of 1 are used for the linear degap 
+            values and 0's are used for quadratic correction factors. 
+            If COEFF is specified then the values cfu1 and cfv1 are used 
+            for linear and cfu2 and cfv2 are used for quadratic correction 
+            factors. Alternatively a degap.  FITS file may be provided, but 
+            it is the users responsibility to make sure that the file 
+            contains the appropriate entries for hrc-i or hrc-s data.
+         
+</PARA>
+<PARA>
+
+            Users can specify "CALDB" to automatically look up the file
+            appropriate for the observation date; the header keyword 
+            "DEGAPFILE" will contain the name of the file actually used.
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="CALDB" filetype="ARD" name="hypfile" type="file">
+<SYNOPSIS>
+
+         CALDB, NONE, or file name
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            This file contains the coefficients for the hyperbolic test. 
+            If set to NONE then no hyperbolic test is applied. 
+         
+</PARA>
+<PARA>
+
+            Users can specify "CALDB" to automatically look up the file
+            appropriate for the observation date; the header keyword
+            "HYPFILE" will contain the name of the file actually used.
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="CALDB" filetype="ARD" name="ampsfcorfile" type="file">
+<SYNOPSIS>
+
+         CALDB, NONE, or filename
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+             A file of coefficients needed to apply a correction to 
+             the AMP_SF column in the event structure.  AMP_SF is used 
+             in deciding which events to correct for the tap ringing problem.
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="CALDB" filetype="ARD" name="tapfile" type="file">
+<SYNOPSIS>
+
+         CALDB, NONE, or file name
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            This file contains the coefficients for the tap ring correction. 
+            If set to NONE then no correction is applied. 
+         
+</PARA>
+<PARA>
+
+            Users can specify "CALDB" to automatically look up the file
+            appropriate for the observation date; the header keyword
+            "TAPFILE" will contain the name of the file actually used.
+         
+</PARA>
+</DESC>
+
+</PARAM>
+<PARAM def="CALDB" filetype="ARD" name="ampsatfile" type="file">
+<SYNOPSIS>
+
+         CALDB, NONE, or file name
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            This file contains the coefficients for the saturation test. 
+            If set to NONE then no saturation test is applied. 
+         
+</PARA>
+<PARA>
+
+            Users can specify "CALDB" to automatically look up the file
+            appropriate for the observation date; the header keyword
+            "AMPSATFILE" will contain the name of the file actually used.
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="CALDB" filetype="ARD" name="evtflatfile" type="file">
+<SYNOPSIS>
+
+         CALDB, NONE, or file name
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            This file contains the coefficients for the flatness test. 
+            If set to NONE then no flatness testing is performed. 
+         
+</PARA>
+<PARA>
+
+            Users can specify "CALDB" to automatically look up the file
+            appropriate for the observation date; the header keyword
+            "EVTFLATFILE" will contain the name of the file actually used.
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM filetype="output" name="badfile" type="file">
+<SYNOPSIS>
+
+         Output bad event file [FITS format]
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            File name to use when generating a bad event file. Events which can
+            not be correctly processed (ie. invalid tap positions) are output into this file.  
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="stdout" filetype="output" name="logfile" type="file">
+<SYNOPSIS>
+
+         Nonexistent file or 'stdout'
+
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            This hidden parameter allows the user to generate a debugging log file if the verbose parameter (see below) is set to a non zero value.
+
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="hrc-i" name="instrume" type="string">
+<SYNOPSIS>
+
+         hrc-i, hrc-s, or hsi
+
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            This specifies the instrument that the data was collected with.
+
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM name="eventdef" type="string">
+<SYNOPSIS>
+
+         String of form: {type:colname,type:colname}  )
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            This hidden parameter allows the user to specify the columns that 
+            will exist in the output event file. The default valus of this 
+            parameter is a redirection to the standard level 1 hrc eventdef 
+            specified by the stdlev1 parameter.  
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM name="badeventdef" type="string">
+<SYNOPSIS>
+
+         String of form: {type:colname, type:colname}  )
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            This hidden parameter allows the user to specify the columns that 
+            will exist in the output bad event file.
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="0.5" max="1.0" min="0.0" name="grid_ratio" type="real">
+<SYNOPSIS>
+
+         double precision real
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            charge ratio
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="0.5" max="1.0" min="0.0" name="pha_ratio" type="real">
+<SYNOPSIS>
+
+         double precision real
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            pha ratio
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="0" name="wire_charge" type="integer">
+<SYNOPSIS>
+
+         (-1, 0)
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            option to enable or disable the center wire test (-1 = off) 
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="1.0" name="cfu1" type="real">
+<SYNOPSIS>
+
+         double precision real
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            first order correction factor for u axis
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="0.0" name="cfu2" type="real">
+<SYNOPSIS>
+
+         double precision real
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            second order correction factor for u axis
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="1.0" name="cfv1" type="real">
+<SYNOPSIS>
+
+         double precision real
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            first order correction factor for v axis
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="0.0" name="cfv2" type="real">
+<SYNOPSIS>
+
+         double precision real
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            second order correction factor for v axis
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="0.0" name="time_offset" type="real">
+<SYNOPSIS>
+
+         real number
+
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            offset which needs to be added to the event file to synch it up with
+            the fam (dither) data.
+
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="75.0" name="amp_gain" type="real">
+<SYNOPSIS>
+
+         real number
+
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            amp gain
+
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="1" max="32767" min="0" name="rand_seed" type="integer">
+<SYNOPSIS>
+
+         0, positive integer
+
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            This value determines the seed value for the pseudo-random 
+            generator used in integer rounding (if rand_pix_size is not 0.0). 
+            A value of 0 indicates use of clock time as the seed.
+
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="0.0" name="rand_pix_size" type="real">
+<DESC>
+<PARA>
+            This parameter specifies the range of the randomization
+            values applied to the coordinate computations. The value
+            can be either 0.0 or 0.5. If it is set to 0.0 (the
+            default), randomization will not be performed.
+
+</PARA>
+</DESC>
+
+</PARAM>
+<PARAM def="TSTART" name="tstart" type="string">
+<SYNOPSIS>
+
+         TSTART or some other keyword name
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            The name of the header keyword containing the time of the first 
+            event in this file. It is used as the lowerbound of a temporal 
+            filter on the event file.
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="TSTOP" name="tstop" type="string">
+<SYNOPSIS>
+
+         TSTART or some other keyword name
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            The name of the header keyword containing the time of the last 
+            event in this file. It is used as the upperbound of a temporal 
+            filter on the event file.
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="coarse" name="start" type="string"> 
+<SYNOPSIS>
+
+         coarse, chip, tdet
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            The start of the coordinate transformations. This should be set to
+            coarse. Chip is supported for MARX data. 
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="sky" name="stop" type="string">
+<SYNOPSIS>
+
+         none, chip, tdet, det, sky
+
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            The end of the coordinate transformations. This determines the
+            extent of the coordinate transformations that are executed by
+            hrc_process_events. It should generally be set to sky. If a
+            value of none is specified, coordinate transformations are
+            not executed.
+
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM name="stdlev1" type="string">
+<DESC>
+<PARA>
+
+            This string specifies one of the pre-defined sets of column
+            names and data types that can be used to control the information
+            written to the output file. eventdef=")stdlev1" is equivalent 
+            to eventdef="{d:time,s:crsv,s:crsu,s:amp_sf,s:av1,s:av2,s:av3,
+            s:au1,s:au2,s:au3,l:raw,s:chip,l:tdet,f:det,f:sky,s:pha,s:pi,
+            s:sumamps,s:chip_id,x:status}".
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM name="badlev1" type="string">
+<DESC>
+<PARA>
+
+            This string specifies one of the pre-defined sets of column
+            names and data types that can be used to control the information
+            written to the output file. eventdef=")badlev1" is equivalent 
+            to eventdef="{d:time,s:crsu,s:crsv,s:au1,s:au2,s:au3,
+            s:av1,s:av2,s:av3,s:pha}".
+</PARA>
+
+</DESC>
+
+</PARAM>
+
+<PARAM name="hsilev1" type="string">
+<DESC>
+<PARA>
+
+            This string specifies one of the pre-defined sets of column
+            names and data types that can be used to control the information
+            written to the output file. eventdef=")hsilev1" is equivalent 
+            to eventdef="{d:time,s:crsu,s:crsv,s:au1,s:au2,s:au3,s:av1,
+            s:av2,s:av3,s:chipx,s:chipy,s:tdetx,s:tdety,s:x,s:y,l:fpz,
+            s:pha,s:vstat,s:estat}".
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM name="simlev1" type="string">
+<DESC>
+<PARA>
+
+            This string specifies one of the pre-defined sets of column
+            names and data types that can be used to control the information
+            written to the output file. eventdef=")simlev1" is equivalent 
+            to eventdef="{l:tick,i:scifr,i:mjf,s:mnf,s:evtctr,s:crsu,
+            s:crsv,s:au1,s:au2,s:au3,s:av1,s:av2,s:av3,s:tdetx,s:tdety,
+            s:pha,s:vstat,s:estat}".
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM name="fltlev1" type="string">
+<DESC>
+<PARA>
+
+            This string specifies one of the pre-defined sets of column
+            names and data types that can be used to control the information
+            written to the output file. eventdef=")fltlev1" is equivalent 
+            to eventdef="{d:time,s:crsv,s:crsu,s:amp_sf,s:av1,s:av2,s:av3,
+            s:au1,s:au2,s:au3,s:chipx,s:chipy,l:tdetx,l:tdety,s:detx,
+            s:dety,s:x,s:y,s:pha,s:sumamps,s:chip_id,l:status}".
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="no" name="clobber" type="boolean">
+<SYNOPSIS>
+
+         Overwrite output event file if it already exists?
+      
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+A value of yes indicates that the tool will overwrite an
+existing output file if the file already exists.
+A value of no causes the tool to exit with an error message if the
+file already exists.
+         
+</PARA>
+
+</DESC>
+
+</PARAM>
+<PARAM def="0" max="5" min="0" name="verbose" type="integer">
+<SYNOPSIS>
+
+         Verbose level
+
+</SYNOPSIS>
+<DESC>
+<PARA>
+
+            Option to enable or disable the logging of debugging information
+            to a datafile or standard output (specified by the logfile
+            parameter). A value of zero disables the logging and nonzero
+            numbers indicate the degree of detail to log with five being
+            the most detailed and one the least.
+
+</PARA>
+
+</DESC>
+
+</PARAM>
+</PARAMLIST>
+     
+
+<BUGS><PARA>
+	See the
+        <HREF link="http://cxc.harvard.edu/ciao/bugs/hrc_process_events.html">bugs page
+	for this tool</HREF>
+        on the CIAO website for an up-to-date listing of known bugs.
+      </PARA></BUGS>
+
+   <LASTMODIFIED>December 2013</LASTMODIFIED>
+
+
+</ENTRY>
+
+</cxchelptopics>
